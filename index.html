@@ -1,0 +1,1867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- ... existing head content ... -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FINLO</title>
+    
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Leaflet JS for Maps -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Favicon -->
+    <link id="favicon-link" rel="icon" type="image/png" href="https://placehold.co/32x32/a855f7/FFFFFF?text=F">
+
+    <style>
+        /* ... existing styles ... */
+        :root {
+            --primary-color: #a855f7; /* Vibrant Purple */
+            --secondary-color: #6366f1; /* Indigo */
+            --accent-color: #06b6d4; /* Cyan */
+            --dark-bg: #0a0a0f;
+            --card-bg-rgb: 22, 22, 29; /* For RGBA */
+            --text-light: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border-color-rgb: 255, 255, 255; /* For RGBA */
+            --shadow-color: rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-light);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        /* Animated Gradient Background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 25%, rgba(168, 85, 247, 0.2), transparent 40%),
+                        radial-gradient(circle at 75% 80%, rgba(56, 189, 248, 0.15), transparent 40%);
+            z-index: -1;
+            animation: move-glow 25s infinite alternate ease-in-out;
+            will-change: transform;
+        }
+
+        @keyframes move-glow {
+            from { transform: translate(-10vw, -10vh) scale(1); }
+            to { transform: translate(10vw, 10vh) scale(1.3); }
+        }
+
+        /* --- Splash Screen --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--dark-bg);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out, visibility 0.5s;
+        }
+        #splash-screen.hidden { opacity: 0; visibility: hidden; }
+
+        /* --- Page Transitions --- */
+        .page {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+            padding-bottom: 100px; /* Space for bottom nav */
+        }
+        #home-page { min-height: 100vh; }
+        .page.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* --- General Classes & Buttons --- */
+        .gradient-text {
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn {
+            padding: 1rem 2rem; font-size: 1rem; font-weight: 600;
+            border-radius: 50px; border: none; cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-primary {
+            color: var(--text-light);
+            position: relative;
+            overflow: hidden;
+            background: 
+                radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.08) 1px, transparent 0),
+                linear-gradient(90deg, #05445E, #189AB4, #75E6DA, #189AB4, #05445E);
+            background-size: 4px 4px, 250% 100%;
+            animation: move-gradient 4s linear infinite;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        @keyframes move-gradient {
+            0% { background-position: 0% 50%, 0% 50%; }
+            100% { background-position: 0% 50%, 100% 50%; }
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.03);
+            box-shadow: 0 8px 25px rgba(24, 154, 180, 0.4);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--text-light);
+            border: 2px solid rgba(var(--border-color-rgb), 0.3);
+        }
+         .btn-outline:hover {
+            background-color: rgba(var(--border-color-rgb), 0.1);
+            border-color: rgba(var(--border-color-rgb), 0.5);
+        }
+
+        /* --- Header --- */
+        .header {
+            position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 1000;
+            width: 95%; max-width: 1200px;
+            transition: all 0.3s ease;
+        }
+        .header-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0;
+            background-color: transparent;
+        }
+        .logo {
+            font-size: 1.5rem; font-weight: 800; color: var(--text-light);
+            text-decoration: none; padding: 0 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+        .header-nav { 
+            display: none;
+            gap: 1rem;
+        }
+        @media (min-width: 768px) { .header-nav { display: flex; } }
+        
+        .header .login-btn {
+            padding: 0.5rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .login-btn {
+            background: #111118; color: var(--text-light); 
+            padding: 0.7rem 1.4rem; border-radius: 50px; 
+            text-decoration: none; font-weight: 700; 
+            transition: background 0.3s ease;
+            display: flex; align-items: center; gap: 0.5rem;
+            width: 100%;
+        }
+        .login-btn:hover { transform: none; box-shadow: none; }
+        #home-explore-btn { justify-content: center; }
+
+        .login-btn-container {
+            border-radius: 50px; padding: 2px;
+            background: linear-gradient(120deg, var(--primary-color), var(--accent-color));
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .login-btn-container:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+        }
+        .login-btn-container:hover .login-btn {
+            background: #1a1a22;
+        }
+
+        /* --- Home Page --- */
+        #home-page .hero-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 6rem 1.5rem 2rem;
+            overflow: hidden;
+        }
+        .hero-split-layout {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 1200px;
+            gap: 2rem;
+        }
+        .hero-left {
+            flex: 1;
+            max-width: 500px;
+            text-align: left;
+            z-index: 10;
+        }
+        .hero-left h1 {
+            font-size: 3rem; font-weight: 800; margin-bottom: 2.5rem;
+            line-height: 1.2;
+        }
+        @media(min-width: 768px){ .hero-left h1 {font-size: 4rem;} }
+        .hero-left .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-width: 300px;
+        }
+
+        /* --- 3D Carousel --- */
+        .hero-right {
+            flex: 1.2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 500px;
+        }
+
+        .carousel-wrapper {
+            width: 100%;
+            height: 400px;
+            position: relative;
+            perspective: 1200px;
+        }
+        .carousel {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+            animation: carousel-spin 32s infinite linear;
+        }
+
+        .carousel-item {
+            position: absolute;
+            width: 280px;
+            height: 180px;
+            left: 50%;
+            top: 50%;
+            margin-left: -140px;
+            margin-top: -90px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            background-color: #333;
+            cursor: pointer; /* Make items clickable */
+        }
+        .carousel-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block; /* Remove extra space below image */
+        }
+        /* REMOVED - Overlay for place name */
+        /* .carousel-item .place-name-overlay { ... } */
+        
+        .carousel-item::after { /* Reflection */
+            content: '';
+            position: absolute;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(to bottom, transparent, rgba(var(--dark-bg-rgb), 0.7)), var(--image-url);
+            background-size: cover;
+            background-position: center;
+            transform: scaleY(-1);
+            opacity: 0.3; /* Adjusted reflection opacity */
+            -webkit-mask-image: linear-gradient(to bottom, transparent 40%, black 100%);
+            mask-image: linear-gradient(to bottom, transparent 40%, black 100%);
+            z-index: -1; /* Ensure reflection is behind */
+        }
+
+
+        /* Position each item in a circle */
+        .carousel-item:nth-child(1) { transform: rotateY(0deg) translateZ(350px); }
+        .carousel-item:nth-child(2) { transform: rotateY(45deg) translateZ(350px); }
+        .carousel-item:nth-child(3) { transform: rotateY(90deg) translateZ(350px); }
+        .carousel-item:nth-child(4) { transform: rotateY(135deg) translateZ(350px); }
+        .carousel-item:nth-child(5) { transform: rotateY(180deg) translateZ(350px); }
+        .carousel-item:nth-child(6) { transform: rotateY(225deg) translateZ(350px); }
+        .carousel-item:nth-child(7) { transform: rotateY(270deg) translateZ(350px); }
+        .carousel-item:nth-child(8) { transform: rotateY(315deg) translateZ(350px); }
+
+        @keyframes carousel-spin {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(360deg); }
+        }
+        
+        @media (max-width: 900px) {
+            .hero-split-layout { flex-direction: column; text-align: center; }
+            .hero-left { order: 2; max-width: 100%; display: flex; flex-direction: column; align-items: center; }
+            .hero-left h1 { text-align: center; }
+            .hero-left .action-buttons { margin: 0 auto; justify-content: center; }
+            .hero-right { order: 1; width: 100%; height: 350px; margin-bottom: 2rem; }
+        }
+
+        /* Mobile specific adjustments for carousel */
+        @media (max-width: 767px) {
+            .hero-right {
+                min-height: 300px;
+                height: 300px;
+            }
+            .carousel-wrapper {
+                perspective: 800px;
+                 height: 300px;
+            }
+            .carousel-item {
+                width: 200px;
+                height: 120px;
+                margin-left: -100px;
+                margin-top: -60px;
+            }
+            /* REMOVED - Overlay for place name mobile styles */
+            /* .carousel-item .place-name-overlay { ... } */
+            .carousel-item:nth-child(1) { transform: rotateY(0deg) translateZ(250px); }
+            .carousel-item:nth-child(2) { transform: rotateY(45deg) translateZ(250px); }
+            .carousel-item:nth-child(3) { transform: rotateY(90deg) translateZ(250px); }
+            .carousel-item:nth-child(4) { transform: rotateY(135deg) translateZ(250px); }
+            .carousel-item:nth-child(5) { transform: rotateY(180deg) translateZ(250px); }
+            .carousel-item:nth-child(6) { transform: rotateY(225deg) translateZ(250px); }
+            .carousel-item:nth-child(7) { transform: rotateY(270deg) translateZ(250px); }
+            .carousel-item:nth-child(8) { transform: rotateY(315deg) translateZ(250px); }
+        }
+        
+        /* ... rest of the existing styles ... */
+        .card {
+            position: relative; background-color: rgba(var(--card-bg-rgb), 0.6);
+            border: 1px solid rgba(var(--border-color-rgb), 0.1); backdrop-filter: blur(10px); z-index: 1;
+            padding: 1.5rem; border-radius: 1.25rem; transition: all 0.3s ease;
+        }
+        .card::before {
+            content: ''; position: absolute; inset: -1px; border-radius: calc(1.25rem + 1px); padding: 1px;
+            background: linear-gradient(120deg, var(--primary-color), var(--secondary-color), var(--accent-color));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor; mask-composite: exclude;
+            opacity: 0; transition: opacity 0.4s ease-in-out; z-index: -1;
+        }
+        .card:hover { border-color: transparent; transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .card:hover::before { opacity: 1; }
+        
+        .option-card.option-card--standard::before, .option-card[data-plan="premium"]::before { 
+            opacity: 1; 
+        }
+        .option-card.option-card--standard::before { 
+            background: linear-gradient(120deg, var(--secondary-color), var(--accent-color)); 
+        }
+        .option-card[data-plan="premium"]::before {
+             background: linear-gradient(120deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+        }
+
+        .page-title {
+            padding: 6rem 1.5rem 2rem; font-size: 2.5rem; font-weight: 700; text-align: center;
+        }
+        
+        #trip-form {
+            display: flex; flex-direction: column; gap: 1rem;
+            width: 100%; padding: 0 1.5rem; max-width: 500px; margin: 0 auto;
+        }
+        
+        #trip-form input, #trip-form select {
+            width: 100%; padding: 1rem 1.25rem; font-size: 1rem;
+            background: rgba(var(--card-bg-rgb), 0.8);
+            border: 1px solid rgba(var(--border-color-rgb), 0.1);
+            border-radius: 0.75rem; color: var(--text-light); transition: all 0.3s;
+        }
+        #trip-form select option { background: #1e1e28; color: var(--text-light); }
+        #trip-form input::placeholder { color: var(--text-muted); }
+        #trip-form input:focus, #trip-form select:focus {
+            outline: none; border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3);
+        }
+        
+        .options-container {
+            padding: 0 1.5rem; display: flex; flex-direction: column;
+            gap: 1.5rem; align-items: center;
+        }
+        .option-card { width: 100%; max-width: 400px; padding: 2rem; cursor: pointer; text-align: center;}
+        .option-card h3 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .option-card p { color: var(--text-muted); margin-bottom: 1.5rem; }
+
+        .page-header-light { padding: 6rem 1.5rem 1rem; text-align: center; font-size: 1.5rem; }
+        .search-container { padding: 1rem 1.5rem; }
+        #search-places {
+            width: 100%; padding: 1rem; font-size: 1rem; border-radius: 50px;
+            border: 1px solid rgba(var(--border-color-rgb), 0.1);
+            background: rgba(var(--card-bg-rgb), 0.8);
+            color: var(--text-light);
+        }
+        .filter-container { padding: 1rem 1.5rem 0; display: flex; gap: 0.5rem; overflow-x: auto; -ms-overflow-style: none; scrollbar-width: none; }
+        .filter-container::-webkit-scrollbar { display: none; }
+        .filter-btn {
+            padding: 0.5rem 1rem; border-radius: 50px;
+            background: rgba(var(--card-bg-rgb), 0.8); color: var(--text-muted);
+            border: 1px solid rgba(var(--border-color-rgb), 0.1);
+            cursor: pointer; white-space: nowrap; transition: all 0.3s;
+        }
+        .filter-btn.active { color: var(--text-light); background: var(--primary-color); border-color: var(--primary-color); }
+        .places-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem; padding: 1rem 1.5rem;
+        }
+        .place-card {
+            background: rgba(var(--card-bg-rgb), 0.6);
+            border-radius: 1rem; overflow: hidden;
+            border: 1px solid rgba(var(--border-color-rgb), 0.1);
+            position: relative; transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .place-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.2); }
+        .favorite-btn {
+            position: absolute; top: 0.75rem; right: 0.75rem;
+            background: rgba(0,0,0,0.5); border: none; border-radius: 50%;
+            width: 36px; height: 36px; display: flex;
+            align-items: center; justify-content: center; cursor: pointer; z-index: 10;
+        }
+        .favorite-btn.favorited svg { fill: #ef4444; stroke: #ef4444; }
+        .place-media { height: 200px; width: 100%; overflow: hidden; }
+        .place-media img, .place-media video { width: 100%; height: 100%; object-fit: cover; transition: transform 2s ease; }
+        .place-card:hover .place-media img, .place-card:hover .place-media video { transform: scale(1.1); }
+        .place-info { padding: 1rem; } .place-info h3 { font-size: 1.2rem; margin-bottom: 0.5rem; }
+        .place-info p { font-size: 0.9rem; color: var(--text-muted); }
+        .empty-state { text-align: center; padding: 4rem 1.5rem; color: var(--text-muted); }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+        #itinerary-page .page-header { padding: 6rem 0 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+        #itinerary-title { font-size: 1.75rem; font-weight: 700; }
+        .loader {
+            border: 5px solid rgba(255, 255, 255, .1);
+            border-left-color: var(--primary-color);
+            border-radius: 50%; width: 50px; height: 50px;
+            animation: spin 1s linear infinite; margin: 2rem auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-container { text-align: center; color: var(--text-muted); }
+        #map { height: 300px; border-radius: 1rem; z-index: 5; margin-top: 1rem; }
+        .timeline-item { margin-bottom: 1.5rem; }
+        
+        .transport-details {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            margin: -0.5rem auto 1.5rem;
+            color: var(--text-muted);
+            font-style: italic;
+            width: 95%;
+            border-radius: 0.75rem;
+            background: rgba(var(--card-bg-rgb), 0.3);
+            gap: 0.5rem;
+        }
+
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(10, 10, 15, 0.7);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(var(--border-color-rgb), 0.1);
+            display: flex; justify-content: space-around;
+            padding: 0.5rem 0; z-index: 1000;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 0.25rem; color: var(--text-muted); text-decoration: none;
+            font-size: 0.7rem; font-weight: 500; padding: 0.5rem 1rem;
+            border-radius: 50px; transition: all 0.3s ease;
+        }
+        .nav-item.active { color: var(--primary-color); }
+        .nav-item.active svg { stroke: var(--primary-color); }
+        
+        #universal-back-btn {
+            position: fixed; bottom: 5.5rem; right: 1.5rem;
+            width: 50px; height: 50px;
+            background-color: var(--primary-color); color: var(--text-light);
+            border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            cursor: pointer; z-index: 1001; transition: transform 0.3s ease;
+        }
+        #universal-back-btn:hover { transform: scale(1.1); }
+        
+        .toast-notification {
+            position: fixed; bottom: 6rem; left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background-color: #222; color: white;
+            padding: 10px 20px; border-radius: 20px;
+            z-index: 1002; opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+         .toast-notification.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .footer {
+            padding: 4rem 1.5rem 2rem;
+            text-align: center;
+            border-top: 1px solid rgba(var(--border-color-rgb), 0.1);
+            margin-top: 2rem;
+            color: var(--text-muted);
+        }
+        
+        /* --- Login Modal --- */
+        #auth-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 2000;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        #auth-modal.show { opacity: 1; visibility: visible; }
+        .modal-content {
+            position: relative;
+            background-color: #111118;
+            padding: 2rem;
+            border-radius: 1.25rem;
+            border: 1px solid rgba(var(--border-color-rgb), 0.1);
+            width: 90%; max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+        #auth-modal.show .modal-content { transform: scale(1); }
+        .close-modal-btn {
+            position: absolute; top: 1rem; right: 1rem;
+            background: transparent; border: none; cursor: pointer;
+            color: var(--text-muted); font-size: 1.5rem;
+            line-height: 1;
+        }
+        .close-modal-btn:hover { color: var(--text-light); }
+        .modal-content h2 { margin-bottom: 1.5rem; font-size: 1.8rem; }
+        .auth-form { display: none; flex-direction: column; gap: 1rem; }
+        .auth-form.active { display: flex; }
+        .auth-form input {
+            width: 100%; padding: 0.8rem 1rem; font-size: 1rem;
+            background: rgba(var(--card-bg-rgb), 0.8);
+            border: 1px solid rgba(var(--border-color-rgb), 0.1);
+            border-radius: 0.5rem; color: var(--text-light); transition: all 0.3s;
+        }
+        .auth-form input:focus {
+            outline: none; border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3);
+        }
+        .auth-form .btn { padding: 0.8rem 1.5rem; width: 100%; }
+        .form-toggle-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+        .form-toggle-link:hover { text-decoration: underline; }
+        .divider {
+            display: flex; align-items: center; text-align: center; color: var(--text-muted);
+            margin: 1.5rem 0;
+        }
+        .divider::before, .divider::after {
+            content: ''; flex: 1; border-bottom: 1px solid rgba(var(--border-color-rgb), 0.1);
+        }
+        .divider:not(:empty)::before { margin-right: .5em; }
+        .divider:not(:empty)::after { margin-left: .5em; }
+        .google-signin-btn {
+            background-color: #fff; color: #333;
+            display: flex; align-items: center; justify-content: center;
+            gap: 0.75rem; width: 100%; padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .google-signin-btn:hover { background-color: #f0f0f0; }
+        .google-signin-btn img { width: 20px; height: 20px; }
+        #auth-error {
+            color: #ef4444;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            display: none; /* Hidden by default */
+        }
+        
+        /* --- Book Cab Page --- */
+        #book-cab-page .card { margin-bottom: 1.5rem; }
+        .cost-breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(var(--border-color-rgb), 0.05);
+        }
+        .cost-breakdown-row:last-child {
+            border-bottom: none;
+        }
+        .cost-breakdown-row.total {
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-top: 0.5rem;
+            color: var(--text-light);
+        }
+
+
+        /* --- Profile Page --- */
+        #profile-page .container {
+            padding-top: 6rem;
+            text-align: center;
+        }
+        .profile-card {
+            max-width: 500px;
+            margin: 0 auto;
+            margin-bottom: 2rem;
+        }
+        .profile-avatar {
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            object-fit: cover;
+            border: 3px solid var(--primary-color);
+        }
+        .profile-email {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            word-break: break-all;
+        }
+        .logout-btn {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            width: 100%;
+        }
+        .logout-btn:hover {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border-color: #ef4444;
+        }
+        #past-trips-container .card {
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+        #past-trips-container h3 {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="splash-screen">
+       <h1 class="logo" style="font-size: 3rem;">FINLO</h1>
+    </div>
+
+    <div id="app">
+        <!-- Universal Back Button -->
+        <button id="universal-back-btn" style="display: none;">
+            <svg width="24" height="24" viewBox="0 0 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+
+        <!-- Toast Notification -->
+        <div id="toast-notification" class="toast-notification"></div>
+
+        <!-- AUTH MODAL -->
+        <div id="auth-modal" class="modal">
+            <div class="modal-content">
+                <button class="close-modal-btn">&times;</button>
+                <div id="login-view">
+                    <h2>Login</h2>
+                    <form id="login-form" class="auth-form active">
+                        <input type="email" id="login-email" placeholder="Email" required>
+                        <input type="password" id="login-password" placeholder="Password" required>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </form>
+                    <p class="form-toggle-link" id="show-signup">Don't have an account? Sign Up</p>
+                </div>
+                <div id="signup-view" style="display: none;">
+                    <h2>Sign Up</h2>
+                    <form id="signup-form" class="auth-form active">
+                        <input type="email" id="signup-email" placeholder="Email" required>
+                        <input type="password" id="signup-password" placeholder="Password" required>
+                        <button type="submit" class="btn btn-primary">Sign Up</button>
+                    </form>
+                    <p class="form-toggle-link" id="show-login">Already have an account? Login</p>
+                </div>
+                <div class="divider">OR</div>
+                <button id="google-signin-btn" class="google-signin-btn">
+                    <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google logo" style="height: 20px; width: auto;">
+                    <span>Sign in with Google</span>
+                </button>
+                <p id="auth-error"></p>
+            </div>
+        </div>
+
+        <!-- HOME PAGE -->
+        <div id="home-page" class="page active">
+            <header id="home-header" class="header">
+                <div class="header-inner">
+                    <a href="#" class="logo">
+                        <!-- Use a text logo or a proper image URL if available -->
+                         <img src="https://placehold.co/120x40/ffffff/0a0a0f?text=FINLO" alt="FINLO Logo" style="height: 32px; border-radius: 4px;">
+                    </a>
+                    <nav class="header-nav">
+                        <div class="login-btn-container">
+                            <a href="#" class="login-btn">About Us</a>
+                        </div>
+                        <div class="login-btn-container">
+                            <a href="#" id="header-explore-btn" class="login-btn">Explore</a>
+                        </div>
+                    </nav>
+                    <div class="login-btn-container">
+                        <a href="#" id="login-btn" class="login-btn">
+                            <img id="profile-favicon" src="https://placehold.co/32x32/E4DFAF/000000?text=U" style="width: 24px; height: 24px; border-radius: 50%; display: none;" alt="User Profile">
+                            <span id="login-text">Login</span>
+                        </a>
+                    </div>
+                </div>
+            </header>
+            <main>
+                <section class="hero-section">
+                    <div class="hero-split-layout">
+                        <div class="hero-left">
+                            <h1 class="gradient-text">Discover Your Next Adventure</h1>
+                            <div class="action-buttons">
+                                <button id="home-plan-trip-btn" class="btn btn-primary">Plan Your Trip <span style="margin-left: 8px; transition: transform 0.3s ease;">→</span></button>
+                                <div class="login-btn-container">
+                                    <button id="home-explore-btn" class="login-btn" style="border: none; font-weight: 600; font-size: 1rem;">Explore Places</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hero-right">
+                           <div class="carousel-wrapper">
+                                <div class="carousel" id="home-carousel"> <!-- Added ID -->
+                                    <!-- Items will be dynamically populated by JS -->
+                                    <div class="carousel-item" data-place-name="Lalbagh Botanical Garden">
+                                        <img src="https://lh5.googleusercontent.com/p/AF1QipP_F7q-q3zV3n5N3_oH4S0E2F5bY9M6F7P2z5M=w540-h312-n-k-no" alt="Lalbagh Botanical Garden" onerror="this.onerror=null;this.src='https://placehold.co/280x180/228B22/FFFFFF?text=Lalbagh';">
+                                        <!-- REMOVED: <div class="place-name-overlay">Lalbagh Botanical Garden</div> -->
+                                    </div>
+                                    <div class="carousel-item" data-place-name="Bangalore Palace">
+                                        <img src="https://lh5.googleusercontent.com/p/AF1QipN3wB8gC_xCtbYx_P4V1kI-Lq-LzQ9kZ3W5K8mR=w540-h312-n-k-no" alt="Bangalore Palace" onerror="this.onerror=null;this.src='https://placehold.co/280x180/8B4513/FFFFFF?text=Bangalore+Palace';">
+                                        <!-- REMOVED: <div class="place-name-overlay">Bangalore Palace</div> -->
+                                    </div>
+                                    <div class="carousel-item" data-place-name="Cubbon Park">
+                                        <img src="https://lh5.googleusercontent.com/p/AF1QipP7d5W4_F2L5t4p5T0R_O8Y8a8s3v3V7j4z9h7J=w540-h312-n-k-no" alt="Cubbon Park" onerror="this.onerror=null;this.src='https://placehold.co/280x180/3CB371/FFFFFF?text=Cubbon+Park';">
+                                        <!-- REMOVED: <div class="place-name-overlay">Cubbon Park</div> -->
+                                    </div>
+                                    <div class="carousel-item" data-place-name="ISKCON Temple Bangalore">
+                                        <img src="https://lh5.googleusercontent.com/p/AF1QipM7l_k8U6R6Z0J1J0b4e0h2E9f2K0Y3N9p9w4fF=w540-h312-n-k-no" alt="ISKCON Temple Bangalore" onerror="this.onerror=null;this.src='https://placehold.co/280x180/FFD700/000000?text=ISKCON';">
+                                        <!-- REMOVED: <div class="place-name-overlay">ISKCON Temple</div> -->
+                                    </div>
+                                    <div class="carousel-item" data-place-name="Vidhana Soudha">
+                                        <img src="https://lh5.googleusercontent.com/p/AF1QipO3q9m7r5U8c5V5l_R3g8d8C8Z3R3r8U7f9R8qR=w540-h312-n-k-no" alt="Vidhana Soudha" onerror="this.onerror=null;this.src='https://placehold.co/280x180/A9A9A9/000000?text=Vidhana+Soudha';">
+                                        <!-- REMOVED: <div class="place-name-overlay">Vidhana Soudha</div> -->
+                                    </div>
+                                     <div class="carousel-item" data-place-name="Nandi Hills">
+                                        <img src="https://lh5.googleusercontent.com/p/AF1QipP-Y_yqX5G8mJ9l7T3kS4q3W8kY0n6s7p0d5n8=w540-h312-n-k-no" alt="Nandi Hills" onerror="this.onerror=null;this.src='https://placehold.co/280x180/87CEEB/000000?text=Nandi+Hills';">
+                                         <!-- REMOVED: <div class="place-name-overlay">Nandi Hills</div> -->
+                                    </div>
+                                    <div class="carousel-item" data-place-name="Commercial Street">
+                                        <img src="https://lh5.googleusercontent.com/p/AF1QipNsT9K8J6l2P9x0_x8b9e1d8a7c6f5e0j4g7h8=w540-h312-n-k-no" alt="Commercial Street" onerror="this.onerror=null;this.src='https://placehold.co/280x180/FF69B4/FFFFFF?text=Shopping';">
+                                        <!-- REMOVED: <div class="place-name-overlay">Commercial Street</div> -->
+                                    </div>
+                                    <div class="carousel-item" data-place-name="UB City Mall">
+                                        <img src="https://lh5.googleusercontent.com/p/AF1QipN3k_X7p4A6q5C8w_L7z9Y6n4T2r1u0J9m8p5s=w540-h312-n-k-no" alt="UB City Mall" onerror="this.onerror=null;this.src='https://placehold.co/280x180/000000/FFFFFF?text=UB+City';">
+                                        <!-- REMOVED: <div class="place-name-overlay">UB City Mall</div> -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <footer class="footer">
+                    <p>&copy; 2024 FINLO. All rights reserved.</p>
+                </footer>
+            </main>
+        </div>
+
+        <!-- PLAN TRIP PAGE -->
+        <div id="plan-trip-page" class="page">
+           <!-- ... existing plan trip page content ... -->
+           <h2 class="page-title">Plan Your Trip</h2>
+            <form id="trip-form">
+                <input type="text" id="start-location" placeholder="From: Enter start location" required>
+                <input type="text" id="destination" placeholder="To: Enter a destination city" required>
+                <input type="text" id="budget" placeholder="Budget (e.g., 1000 INR, Moderate)" required>
+                <input type="number" id="passengers" placeholder="Passengers" min="1" value="1" required>
+                <select id="travel-mode" required>
+                    <option value="public transport">Public Transport</option>
+                    <option value="car">Car</option>
+                    <option value="a mix">A Mix</option>
+                </select>
+                <select id="food-pref" required>
+                    <option value="any">Any Food</option>
+                    <option value="local cuisine">Local Cuisine</option>
+                    <option value="vegetarian">Vegetarian</option>
+                    <option value="street food">Street Food</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Choose Plan Type <span style="margin-left: 8px; transition: transform 0.3s ease;">→</span></button>
+            </form>
+        </div>
+
+        <!-- OPTIONS PAGE -->
+        <div id="options-page" class="page">
+            <!-- ... existing options page content ... -->
+             <h2 class="page-title">Choose Your Plan</h2>
+            <div class="options-container">
+                <div class="option-card card option-card--standard" data-plan="standard">
+                    <h3>Standard</h3>
+                    <p>Flexibility with public transport, fare comparisons, and editable stops.</p>
+                    <button class="btn btn-primary">Select Plan</button>
+                </div>
+                <div class="option-card card" data-plan="premium">
+                    <h3>Premium</h3>
+                    <p>A private, full-day cab for a seamless and premium experience.</p>
+                    <button class="btn btn-primary">Book Now</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- EXPLORE PAGE -->
+        <div id="explore-page" class="page">
+             <!-- ... existing explore page content ... -->
+              <header class="page-header-light">
+                  <h2>Explore Bangalore</h2>
+             </header>
+            <div class="search-container">
+                <input type="text" id="search-places" placeholder="Search for attractions...">
+            </div>
+            <div id="explore-filter-container" class="filter-container"></div>
+            <div id="places-grid" class="places-grid"></div>
+        </div>
+
+        <!-- FAVORITES PAGE -->
+        <div id="favorites-page" class="page">
+           <!-- ... existing favorites page content ... -->
+            <header class="page-header-light">
+                <h2>Your Favorites</h2>
+           </header>
+           <div id="favorites-grid" class="places-grid">
+           </div>
+        </div>
+
+
+        <!-- ITINERARY RESULTS PAGE -->
+        <div id="itinerary-page" class="page">
+            <!-- ... existing itinerary page content ... -->
+              <div class="container">
+                <div class="page-header">
+                    <div>
+                        <h1 id="itinerary-title">Your Day Trip to...</h1>
+                        <p id="itinerary-budget">Budget:</p>
+                    </div>
+                    <div>
+                        <button id="share-itinerary-btn" class="btn btn-outline">Share</button>
+                        <button id="start-trip-btn" class="btn btn-outline">Start Trip</button>
+                    </div>
+                </div>
+                
+                 <div id="loading-indicator" class="loading-container">
+                     <div class="loader"></div>
+                     <p>Crafting your personalized journey...</p>
+                 </div>
+
+                 <div id="results-container" style="display: none;">
+                    <div id="weather-card" class="card" style="display: none; flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div class="weather-info">
+                            <h2 style="font-size: 1.2rem;">Current Weather</h2>
+                            <p id="weather-description" style="color: var(--text-muted)"></p>
+                        </div>
+                        <div id="weather-temp" class="weather-temp" style="font-size: 2.5rem; font-weight: 700;"></div>
+                    </div>
+                    
+                    <div id="itinerary-error-card" class="card" style="display: none; background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.5);">
+                        <h2>Could Not Generate Details</h2>
+                        <p id="itinerary-error-text"></p>
+                    </div>
+
+                    <div class="summary-card card">
+                          <h2>Trip Overview</h2>
+                          <p id="trip-summary" style="color: var(--text-muted)"></p>
+                    </div>
+                    
+                    <div id="itinerary-details-grid">
+                        <div class="map-column">
+                            <h2>Your Route</h2>
+                            <div id="map"></div>
+                        </div>
+                        <div class="timeline-column" style="margin-top: 2rem;">
+                            <h2>Full Itinerary</h2>
+                            <div id="timeline"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="fare-comparison-container" class="card" style="display: none;">
+                        <h2>Fare Comparison</h2>
+                        <div id="fare-loader" class="loading-container" style="display: none; padding: 1rem 0;">
+                            <div class="loader"></div>
+                            <p>Fetching live fares...</p>
+                        </div>
+                        <div id="fare-results" style="display: flex; justify-content: space-around; text-align: center;"></div>
+                        <p id="fare-error" style="color: #ef4444; text-align: center; margin-top: 1rem;"></p>
+                    </div>
+
+                    <div class="card" style="margin-top: 2rem;">
+                          <h2>Expenditure Summary</h2>
+                          <p>Total Estimated Cost: <span id="total-expenditure"></span></p>
+                    </div>
+                    
+                    <button id="edit-itinerary-btn" class="btn btn-primary" style="width: 100%; margin-top: 2rem;">Edit Itinerary</button>
+                 </div>
+            </div>
+        </div>
+        
+        <!-- EDITABLE ITINERARY PAGE (Structure for JS to populate) -->
+        <div id="editable-itinerary-page" class="page">
+           <!-- ... existing editable itinerary page content ... -->
+            <h2 class="page-title">Edit Your Itinerary</h2>
+            <div id="editable-list" class="container">
+            </div>
+        </div>
+
+        <!-- BOOK CAB PAGE -->
+        <div id="book-cab-page" class="page">
+            <!-- ... existing book cab page content ... -->
+             <h2 class="page-title">Book Your Full-Day Ride</h2>
+            <div class="container">
+                <div class="card">
+                    <h3>Proposed Itinerary</h3>
+                    <p id="cab-itinerary-details" style="color: var(--text-muted); margin-bottom: 1rem;">Here's a suggested plan for your 8-hour/80km trip.</p>
+                    <div id="cab-timeline">
+                        <!-- JS will populate this -->
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Cost Estimation</h3>
+                    <div id="cab-cost-breakdown">
+                          <!-- JS will populate this -->
+                    </div>
+                </div>
+                <button id="pay-for-cab-btn" class="btn btn-primary" style="width: 100%;">Pay to Proceed</button>
+            </div>
+        </div>
+
+        <!-- PROFILE PAGE -->
+        <div id="profile-page" class="page">
+            <!-- ... existing profile page content ... -->
+             <div class="container">
+                <div class="card profile-card">
+                    <img id="profile-avatar" src="https://placehold.co/100x100/a855f7/FFFFFF?text=U" class="profile-avatar" alt="User Avatar">
+                    <h2 id="profile-name">User Name</h2>
+                    <p id="profile-email" class="profile-email">user@example.com</p>
+                    <button id="logout-btn" class="btn logout-btn">Log Out</button>
+                </div>
+
+                <div id="past-trips-container">
+                    <h2 style="text-align: center; margin-bottom: 1rem;">My Past Trips</h2>
+                    <!-- Past trips will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+       <!-- ... existing nav items ... -->
+        <a href="#" class="nav-item active" data-page="home-page">
+            <svg width="24" height="24" viewBox="0 0 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 9v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="m21 9-9-7-9 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Home</span>
+        </a>
+        <a href="#" class="nav-item" data-page="explore-page">
+            <svg width="24" height="24" viewBox="0 0 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.5 21C16.7467 21 21 16.7467 21 11.5C21 6.25329 16.7467 2 11.5 2C6.25329 2 2 6.25329 2 11.5C2 16.7467 6.25329 21 11.5 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 22L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Explore</span>
+        </a>
+        <a href="#" class="nav-item" data-page="favorites-page">
+            <svg width="24" height="24" viewBox="0 0 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78v0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Favorites</span>
+        </a>
+        <a href="#" class="nav-item" data-page="profile-page">
+            <svg width="24" height="24" viewBox="0 0 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Profile</span>
+        </a>
+    </nav>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- Custom Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Firebase Configuration ---
+        // ... existing firebase config ...
+         const firebaseConfig = {
+            apiKey: "AIzaSyB7WY6uC1xuKGsK6Y14oMIfyFQQ7QZtQzA",
+            authDomain: "finlo-f9b3f.firebaseapp.com",
+            projectId: "finlo-f9b3f",
+            storageBucket: "finlo-f9b3f.appspot.com",
+            messagingSenderId: "3439410649",
+            appId: "1:3439410649:web:9170914002001e39196dc8",
+            measurementId: "G-L5973ZBK1R"
+        };
+
+
+        // --- Initialize Firebase ---
+        // ... existing firebase init ...
+         if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
+
+
+        // --- State Management ---
+        // ... existing state ...
+         const state = {
+            currentPage: 'home-page',
+            previousPages: [], tripPreferences: null,
+            itineraryData: null, isLoggedIn: false, 
+            user: null,
+            favorites: [],
+        };
+
+
+        // --- DOM Element References ---
+        // ... existing DOM refs ...
+        const pages = document.querySelectorAll('.page');
+        const bottomNavItems = document.querySelectorAll('.nav-item');
+        const universalBackBtn = document.getElementById('universal-back-btn');
+        const tripForm = document.getElementById('trip-form');
+        const optionCards = document.querySelectorAll('.option-card');
+        const shareItineraryBtn = document.getElementById('share-itinerary-btn');
+        const toastNotification = document.getElementById('toast-notification');
+        const authModal = document.getElementById('auth-modal');
+        const closeModalBtn = document.querySelector('.close-modal-btn');
+        const mainLoginBtn = document.getElementById('login-btn');
+        const loginView = document.getElementById('login-view');
+        const signupView = document.getElementById('signup-view');
+        const showSignupBtn = document.getElementById('show-signup');
+        const showLoginBtn = document.getElementById('show-login');
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const googleSigninBtn = document.getElementById('google-signin-btn');
+        const authError = document.getElementById('auth-error');
+        const logoutBtn = document.getElementById('logout-btn');
+        const loginText = document.getElementById('login-text');
+        const profileFavicon = document.getElementById('profile-favicon');
+        const homeCarousel = document.getElementById('home-carousel'); // Get carousel element
+
+
+        // ... existing bangalorePlaces array ...
+          const bangalorePlaces = [
+             { name: "Lalbagh Botanical Garden", description: "Historic garden with rare tropical plants.", image: "https://placehold.co/600x400/228B22/FFFFFF?text=Lalbagh", type: "image", category: "Nature" },
+             { name: "Bangalore Palace", description: "Architectural marvel in Tudor-style.", image: "https://placehold.co/600x400/8B4513/FFFFFF?text=Bangalore+Palace", type: "image", category: "History" },
+             { name: "Cubbon Park", description: "A vast green space in the city's heart.", video: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/300/Big_Buck_Bunny_300_10s_1MB.mp4", type: "video", category: "Nature" },
+             { name: "ISKCON Temple Bangalore", description: "A stunning blend of modern and traditional architecture.", image: "https://placehold.co/600x400/FFD700/000000?text=ISKCON", type: "image", category: "Spiritual" },
+             { name: "Vidhana Soudha", description: "The seat of the state legislature of Karnataka.", image: "https://placehold.co/600x400/A9A9A9/000000?text=Vidhana+Soudha", type: "image", category: "History" },
+             { name: "Visvesvaraya Museum", description: "Interactive science museum for all ages.", image: "https://placehold.co/600x400/00008B/FFFFFF?text=Museum", type: "image", category: "Museum" },
+             { name: "Bannerghatta National Park", description: "Zoo, safari, and butterfly park.", video: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/300/Big_Buck_Bunny_300_10s_1MB.mp4", type: "video", category: "Nature" },
+             { name: "Tipu Sultan's Summer Palace", description: "An example of Indo-Islamic architecture.", image: "https://placehold.co/600x400/DAA520/000000?text=Tipu's+Palace", type: "image", category: "History" },
+             { name: "Commercial Street", description: "Bustling shopping hub for clothes and more.", image: "https://placehold.co/600x400/FF69B4/FFFFFF?text=Shopping", type: "image", category: "Shopping" },
+             { name: "Nandi Hills", description: "Ancient hill fortress, a popular sunrise spot.", image: "https://placehold.co/600x400/87CEEB/000000?text=Nandi+Hills", type: "image", category: "Nature" },
+             { name: "UB City Mall", description: "Luxury shopping mall with high-end brands.", image: "https://placehold.co/600x400/000000/FFFFFF?text=UB+City", type: "image", category: "Shopping" },
+             { name: "HAL Aerospace Museum", description: "India's first aerospace museum.", image: "https://placehold.co/600x400/708090/FFFFFF?text=HAL+Museum", type: "image", category: "Museum" },
+             { name: "Wonderla Amusement Park", description: "A large amusement and water park.", video: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/300/Big_Buck_Bunny_300_10s_1MB.mp4", type: "video", category: "Entertainment" },
+             { name: "National Gallery of Modern Art", description: "Showcasing modern Indian art.", image: "https://placehold.co/600x400/D2B48C/000000?text=Art+Gallery", type: "image", category: "Museum" },
+             { name: "St. Mary's Basilica", description: "The oldest church in Bangalore.", image: "https://placehold.co/600x400/B0C4DE/000000?text=Church", type: "image", category: "Spiritual" },
+             { name: "Jawaharlal Nehru Planetarium", description: "Engaging shows about astronomy.", image: "https://placehold.co/600x400/191970/FFFFFF?text=Planetarium", type: "image", category: "Entertainment" },
+             { name: "M.G. Road", description: "Busy road with shops and restaurants.", image: "https://placehold.co/600x400/32CD32/000000?text=MG+Road", type: "image", category: "Shopping" },
+             { name: "Ulsoor Lake", description: "One of the biggest lakes in Bangalore, ideal for boating.", image: "https://placehold.co/600x400/4682B4/FFFFFF?text=Ulsoor+Lake", type: "image", category: "Nature" },
+             { name: "Bull Temple", description: "Famous for its huge monolithic Nandi.", image: "https://placehold.co/600x400/FF4500/FFFFFF?text=Bull+Temple", type: "image", category: "Spiritual" },
+             { name: "Innovative Film City", description: "Movie-themed park with various attractions.", image: "https://placehold.co/600x400/8A2BE2/FFFFFF?text=Film+City", type: "image", category: "Entertainment" },
+             { name: "Art of Living Center", description: "A serene ashram and spiritual center.", image: "https://placehold.co/600x400/F5F5DC/000000?text=Art+of+Living", type: "image", category: "Spiritual" },
+             { name: "Orion Mall", description: "A large mall with a lakeside promenade.", image: "https://placehold.co/600x400/4169E1/FFFFFF?text=Orion+Mall", type: "image", category: "Shopping" },
+             { name: "Pyramid Valley", description: "Home to the world's largest meditational pyramid.", image: "https://placehold.co/600x400/E6E6FA/000000?text=Pyramid+Valley", type: "image", category: "Spiritual" },
+             { name: "Sankey Tank", description: "A manmade lake with a park and jogging track.", image: "https://placehold.co/600x400/5F9EA0/FFFFFF?text=Sankey+Tank", type: "image", category: "Nature" },
+             { name: "Snow City", description: "An indoor snow theme park.", image: "https://placehold.co/600x400/ADD8E6/000000?text=Snow+City", type: "image", category: "Entertainment" },
+             { name: "Bangalore Fort", description: "Historic fort with a well-preserved Ganapathi temple.", image: "https://placehold.co/600x400/A0522D/FFFFFF?text=Bangalore+Fort", type: "image", category: "History" },
+             { name: "Indiranagar", description: "Trendy neighborhood for breweries and cafes.", image: "https://placehold.co/600x400/6A5ACD/FFFFFF?text=Indiranagar", type: "image", category: "Food" },
+             { name: "Koramangala", description: "Vibrant area with many restaurants.", image: "https://placehold.co/600x400/FF7F50/000000?text=Koramangala", type: "image", category: "Food" },
+             { name: "Shivoham Shiva Temple", description: "Features a massive 65-foot tall statue of Lord Shiva.", image: "https://placehold.co/600x400/B0E0E6/000000?text=Shiva+Temple", type: "image", category: "Spiritual" },
+             { name: "Thottikallu Falls", description: "Scenic waterfall, popular after monsoon.", image: "https://placehold.co/600x400/20B2AA/FFFFFF?text=TK+Falls", type: "image", category: "Nature" },
+             { name: "Turahalli Forest", description: "Popular for cycling and rock climbing.", image: "https://placehold.co/600x400/006400/FFFFFF?text=Turahalli", type: "image", category: "Nature" },
+             { name: "Venkatappa Art Gallery", description: "Displays a collection of paintings and sculptures.", image: "https://placehold.co/600x400/DEB887/000000?text=Venkatappa", type: "image", category: "Museum" },
+             { name: "Gavi Gangadhareshwara Temple", description: "An ancient cave temple with unique architecture.", image: "https://placehold.co/600x400/BC8F8F/000000?text=Cave+Temple", type: "image", category: "Spiritual" },
+             { name: "Lumbini Gardens", description: "A public park on Nagawara Lake with boating.", image: "https://placehold.co/600x400/98FB98/000000?text=Lumbini", type: "image", category: "Entertainment" },
+             { name: "Phoenix Marketcity", description: "One of the largest malls in Bangalore.", image: "https://placehold.co/600x400/CD5C5C/FFFFFF?text=Phoenix+Mall", type: "image", category: "Shopping" },
+             { name: "Chunchi Falls", description: "Picturesque waterfall a few hours from Bangalore.", image: "https://placehold.co/600x400/7B68EE/FFFFFF?text=Chunchi+Falls", type: "image", category: "Nature" },
+             { name: "Devanahalli Fort", description: "The birthplace of Tipu Sultan, a historic fort.", image: "https://placehold.co/600x400/C0C0C0/000000?text=Devanahalli", type: "image", category: "History" },
+             { name: "Forum Mall", description: "A popular mall with a cinema and shops.", image: "https://placehold.co/600x400/800000/FFFFFF?text=Forum+Mall", type: "image", category: "Shopping" },
+             { name: "Hesaraghatta Lake", description: "A large man-made freshwater lake.", image: "https://placehold.co/600x400/00FFFF/000000?text=Hesaraghatta", type: "image", category: "Nature" },
+             { name: "Karnataka Chitrakala Parishath", description: "An art complex for visual arts.", image: "https://placehold.co/600x400/FF00FF/FFFFFF?text=Chitrakala", type: "image", category: "Museum" },
+             { name: "KR Market", description: "A vibrant and chaotic wholesale market.", image: "https://placehold.co/600x400/808000/FFFFFF?text=KR+Market", type: "image", category: "Shopping" },
+             { name: "Madiwala Lake", description: "A large lake that attracts many migratory birds.", image: "https://placehold.co/600x400/008080/FFFFFF?text=Madiwala", type: "image", category: "Nature" },
+             { name: "Mekedatu", description: "A scenic gorge where the Kaveri river flows.", image: "https://placehold.co/600x400/E9967A/000000?text=Mekedatu", type: "image", category: "Nature" },
+             { name: "Muthyala Maduvu (Pearl Valley)", description: "A waterfall and a popular picnic spot.", image: "https://placehold.co/600x400/F0E68C/000000?text=Pearl+Valley", type: "image", category: "Nature" },
+             { name: "Ramanagara", description: "Famous for its rocky hills, Sholay shooting location.", image: "https://placehold.co/600x400/D2691E/FFFFFF?text=Ramanagara", type: "image", category: "Entertainment" },
+             { name: "Savanadurga", description: "Considered one of the largest monolith hills in Asia.", image: "https://placehold.co/600x400/6B8E23/FFFFFF?text=Savanadurga", type: "image", category: "Nature" },
+             { name: "Brigade Road", description: "A major commercial centre and shopping street.", image: "https://placehold.co/600x400/483D8B/FFFFFF?text=Brigade+Road", type: "image", category: "Shopping" },
+             { name: "Jakkur Aerodrome", description: "An airport for general aviation and flight training.", image: "https://placehold.co/600x400/87CEFA/000000?text=Aerodrome", type: "image", category: "Entertainment" },
+             { name: "Mantri Square Mall", description: "A large shopping mall with a metro station connection.", image: "https://placehold.co/600x400/B22222/FFFFFF?text=Mantri+Mall", type: "image", category: "Shopping" },
+             { name: "The Heritage Centre & Aerospace Museum", description: "Showcases the history of Indian aviation.", image: "https://placehold.co/600x400/556B2F/FFFFFF?text=Aerospace", type: "image", category: "Museum" },
+             { name: "VV Puram Food Street", description: "A famous street food paradise.", video: "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/300/Big_Buck_Bunny_300_10s_1MB.mp4", type: "video", category: "Food" },
+        ];
+
+
+        // --- Core Functions ---
+        // ... existing navigateTo, goBack, updateUI, showToast, handleShare, toggleFavorite, renderFavorites functions ...
+         const navigateTo = (pageId) => {
+            if (state.currentPage === pageId && pageId !== 'home-page') return;
+            if (pageId !== state.currentPage) {
+                state.previousPages.push(state.currentPage);
+            }
+            state.currentPage = pageId;
+            updateUI();
+            window.scrollTo(0, 0);
+        };
+
+        const goBack = () => {
+            if (state.previousPages.length > 0) {
+                state.currentPage = state.previousPages.pop();
+                updateUI();
+            }
+        };
+
+        const updateUI = () => {
+            pages.forEach(page => page.classList.toggle('active', page.id === state.currentPage));
+            bottomNavItems.forEach(item => item.classList.toggle('active', item.dataset.page === state.currentPage));
+            universalBackBtn.style.display = (state.previousPages.length > 0 && state.currentPage !== 'home-page') ? 'flex' : 'none';
+            if (state.currentPage === 'favorites-page') renderFavorites();
+        };
+
+        const showToast = (message) => {
+            toastNotification.textContent = message;
+            toastNotification.classList.add('show');
+            setTimeout(() => toastNotification.classList.remove('show'), 2500);
+        };
+        
+        const handleShare = () => {
+            if (!state.itineraryData) return;
+            let shareText = `Check out my trip to ${state.tripPreferences.destination}!\n\nSummary: ${state.itineraryData.summary}\n\n`;
+            state.itineraryData.itinerary.forEach(item => {
+                if(item.activity) {
+                   shareText += `${item.time}: ${item.activity} (Cost: ${item.cost})\n`;
+                }
+            });
+            // Use document.execCommand for clipboard copy due to potential iframe restrictions
+            const textArea = document.createElement("textarea");
+            textArea.value = shareText;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Itinerary copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                showToast('Failed to copy itinerary.');
+            }
+            document.body.removeChild(textArea);
+        };
+
+        
+        const toggleFavorite = (placeName) => {
+            const index = state.favorites.indexOf(placeName);
+            if (index > -1) {
+                state.favorites.splice(index, 1);
+                showToast(`${placeName} removed from favorites.`);
+            } else {
+                state.favorites.push(placeName);
+                showToast(`${placeName} added to favorites!`);
+            }
+            
+            // Save favorites: Use Firestore if logged in, localStorage otherwise
+            if (state.isLoggedIn && state.user) {
+                 db.collection('users').doc(state.user.uid).set({ favorites: state.favorites }, { merge: true })
+                   .catch(error => console.error("Error updating favorites in Firestore:", error));
+            } else {
+                localStorage.setItem('finloFavorites', JSON.stringify(state.favorites));
+            }
+            
+            // Update UI based on current page
+            if (state.currentPage === 'explore-page') {
+                 document.getElementById('search-places').dispatchEvent(new Event('input')); // Re-render explore grid
+            } else if (state.currentPage === 'favorites-page') {
+                renderFavorites(); // Re-render favorites grid
+            }
+        };
+
+        const renderFavorites = () => {
+            const favoritesGrid = document.getElementById('favorites-grid');
+            const favoritedPlaces = bangalorePlaces.filter(p => state.favorites.includes(p.name));
+            if (favoritedPlaces.length === 0) {
+                favoritesGrid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>Nothing here yet!</h3><p>Tap the heart icon on places in the Explore tab to save them here.</p></div>`;
+            } else {
+                renderPlaces(favoritedPlaces, favoritesGrid);
+            }
+        };
+
+
+        // ... existing setupExploreFilters ...
+         const setupExploreFilters = () => {
+            const filterContainer = document.getElementById('explore-filter-container');
+            if(!filterContainer) return;
+            const categories = ['All', ...new Set(bangalorePlaces.map(p => p.category))];
+            filterContainer.innerHTML = categories.map(cat => `<button class="filter-btn ${cat === 'All' ? 'active' : ''}" data-category="${cat}">${cat}</button>`).join('');
+            
+            filterContainer.addEventListener('click', e => {
+                if (e.target.classList.contains('filter-btn')) {
+                    filterContainer.querySelector('.active').classList.remove('active');
+                    e.target.classList.add('active');
+                    document.getElementById('search-places').dispatchEvent(new Event('input'));
+                }
+            });
+        };
+
+
+        // ... existing renderPlaces ...
+         const renderPlaces = (places, gridElement) => {
+            if(!gridElement) return;
+            gridElement.innerHTML = '';
+            if (places.length === 0 && gridElement.id === 'places-grid') {
+                 gridElement.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;"><h3>No places found.</h3><p>Try a different filter or search term.</p></div>`;
+                 return;
+            }
+
+            places.forEach(place => {
+                const card = document.createElement('div');
+                card.className = 'place-card';
+                const isFavorited = state.favorites.includes(place.name);
+                let mediaHtml = (place.type === 'video') ? 
+                    `<video src="${place.video}" muted loop playsinline preload="metadata"></video>` : 
+                    `<img src="${place.image}" alt="${place.name}" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/600x400/cccccc/000000?text=Image+Not+Found';">`;
+
+
+                card.innerHTML = `
+                    <button class="favorite-btn ${isFavorited ? 'favorited' : ''}" data-place-name="${place.name}">
+                        <svg width="24" height="24" viewBox="0 0 24" fill="${isFavorited ? '#ef4444' : 'none'}" stroke="${isFavorited ? '#ef4444' : '#FFFFFF'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    </button>
+                    <div class="place-media">${mediaHtml}</div>
+                    <div class="place-info"><h3>${place.name}</h3><p>${place.description}</p></div>
+                `;
+                // Add event listener for favorite button
+                 const favButton = card.querySelector('.favorite-btn');
+                 favButton.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent card click event
+                    toggleFavorite(place.name);
+                    // Update button appearance immediately
+                    const isNowFavorited = state.favorites.includes(place.name);
+                    favButton.classList.toggle('favorited', isNowFavorited);
+                    favButton.querySelector('svg').setAttribute('fill', isNowFavorited ? '#ef4444' : 'none');
+                     favButton.querySelector('svg').setAttribute('stroke', isNowFavorited ? '#ef4444' : '#FFFFFF');
+                });
+
+                gridElement.appendChild(card);
+            });
+        };
+
+
+        // ... existing search event listener ...
+         document.getElementById('search-places')?.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const activeCategoryElement = document.querySelector('#explore-filter-container .filter-btn.active');
+            const activeCategory = activeCategoryElement ? activeCategoryElement.dataset.category : 'All'; // Handle case where no filter is active initially
+            
+            let filtered = (activeCategory !== 'All') ? bangalorePlaces.filter(p => p.category === activeCategory) : [...bangalorePlaces]; // Use spread to avoid modifying original
+            
+            if (searchTerm) {
+                filtered = filtered.filter(p => p.name.toLowerCase().includes(searchTerm) || p.description.toLowerCase().includes(searchTerm));
+            }
+            renderPlaces(filtered, document.getElementById('places-grid'));
+        });
+
+
+        // --- Itinerary Display & Generation ---
+        // ... existing generateItinerary, displayItineraryResults, setupMap, prepareCabBookingPage functions ...
+         const generateItinerary = async (prefs) => {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const resultsContainer = document.getElementById('results-container');
+            const errorCard = document.getElementById('itinerary-error-card');
+            
+            loadingIndicator.style.display = 'block';
+            resultsContainer.style.display = 'none';
+            errorCard.style.display = 'none';
+
+            const apiKey = "AIzaSyC1AKzEoeflu-mL2lhC3JhCKMKNf1QZ7ME"; // API key will be injected by the environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+
+            const systemPrompt = `You are an expert travel planner for Bengaluru, India. Create a detailed, realistic one-day travel itinerary. 
+            **CRITICAL REQUIREMENT: If the travel mode is 'public transport', the 'description' for 'transport' type itinerary items MUST include specific and plausible Bengaluru BMTC bus numbers (e.g., 'Take Bus 500D', 'Bus 335E') or Namma Metro details (e.g., 'Board the Purple Line towards Challaghatta'). Generic instructions like 'take a bus' are unacceptable.**
+            If the start location is given as latitude and longitude coordinates, use that as the real starting point and find the nearest transport hubs.
+            Ensure the locations are logical in sequence. 
+            Respond ONLY with a valid JSON object matching the specified schema. Do not include markdown formatting or any text outside the JSON object.`;
+            
+            const userQuery = `
+                Generate a one-day itinerary for me in ${prefs.destination}.
+                My preferences are:
+                - Start Location: ${prefs.startLocation}
+                - Budget: ${prefs.budget}
+                - Passengers: ${prefs.passengers}
+                - Travel Mode: ${prefs.travelMode}
+                - Food Preference: ${prefs.foodPref}
+
+                The JSON response must follow this exact schema:
+                {
+                  "summary": "A brief, engaging summary of the trip.",
+                  "itinerary": [
+                    {
+                      "type": "transport" or "activity",
+                      "time": "HH:MM AM/PM" (for 'activity' type only),
+                      "description": "For 'transport', describe the route and mode (e.g., 'Take BMTC Bus 500D from Koramangala to Marathahalli'). For 'activity', describe the place.",
+                      "activity": "Name of the place/activity" (for 'activity' type only),
+                      "cost": "Estimated cost in INR (e.g., '₹100' or 'Free')",
+                      "latitude": latitude_float (for 'activity' type only),
+                      "longitude": longitude_float (for 'activity' type only)
+                    }
+                  ],
+                  "totalCost": "Overall estimated cost for the day in INR (e.g., '₹1500')"
+                }
+            `;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                 generationConfig: { // Specify JSON output
+                    responseMimeType: "application/json",
+                 }
+            };
+
+            // Implement exponential backoff for API calls
+            let attempts = 0;
+            const maxAttempts = 5;
+            let delay = 1000; // Start with 1 second
+
+            while (attempts < maxAttempts) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status === 429 || response.status >= 500) {
+                        // Throttled or server error, retry
+                        throw new Error(`API Error: ${response.status}`);
+                    }
+
+                    if (!response.ok) {
+                         // Other non-retriable error
+                        const errorData = await response.text();
+                        console.error("Non-retriable API error:", errorData);
+                        throw new Error(`API error: ${response.statusText} - ${errorData}`);
+                    }
+
+                    const result = await response.json();
+                    
+                     // Extract text based on the standard Gemini API response structure
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+
+                    if (!text) {
+                         console.warn("API response structure might have changed or text is missing:", result);
+                         throw new Error("Received no valid content from the AI.");
+                    }
+                    
+                    // The API should directly return JSON now with responseMimeType set
+                    const data = JSON.parse(text); // Directly parse the text
+
+                    state.itineraryData = data;
+                    displayItineraryResults(data, prefs);
+                    return; // Success, exit the loop
+
+                } catch (error) {
+                    attempts++;
+                    console.warn(`Attempt ${attempts} failed: ${error.message}. Retrying in ${delay / 1000}s...`);
+                    if (attempts >= maxAttempts) {
+                         console.error("Max retry attempts reached. Error generating itinerary:", error);
+                        errorCard.style.display = 'block';
+                        document.getElementById('itinerary-error-text').textContent = `Failed to generate itinerary after multiple attempts. ${error.message}. Please try again later.`;
+                        break; // Exit loop after max attempts
+                    }
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2; // Double the delay for the next retry
+                } finally {
+                     if (attempts === 0 || attempts >= maxAttempts) { // Hide loader only on first attempt success or final failure
+                        loadingIndicator.style.display = 'none';
+                    }
+                }
+            }
+        };
+
+        const displayItineraryResults = (data, prefs) => {
+            const resultsContainer = document.getElementById('results-container');
+            const weatherCard = document.getElementById('weather-card');
+            
+            document.getElementById('itinerary-title').textContent = `Your Trip to ${prefs.destination}`;
+             document.getElementById('itinerary-budget').textContent = `Budget: ${prefs.budget}`; // Display budget
+            document.getElementById('trip-summary').textContent = data.summary || "No summary provided."; // Handle missing summary
+            
+            // For now, weather is static as we don't have a live API
+            weatherCard.style.display = 'flex';
+            document.getElementById('weather-description').textContent = 'Partly Cloudy';
+            document.getElementById('weather-temp').textContent = '28°C';
+            
+            const timeline = document.getElementById('timeline');
+            timeline.innerHTML = '';
+            let allLatLngs = [];
+
+            if (data.itinerary && Array.isArray(data.itinerary) && data.itinerary.length > 0) {
+                data.itinerary.forEach(item => {
+                    if (item.type === 'transport') {
+                        const transportEl = document.createElement('div');
+                        transportEl.className = 'transport-details';
+                        transportEl.innerHTML = `
+                            <svg style="width:24px; height:24px; flex-shrink: 0;" viewBox="0 0 24 24"><path fill="currentColor" d="M18.92 6C18.42 5.42 17.73 5.09 17 5H15V4a2 2 0 0 0-2-2H8c-1.11 0-2 .89-2 2v1H5c-.73 0-1.42.33-1.92.9L2 7v9c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1V7l-1.08-1M8 4h6v1H8V4m9.5 7.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5m-9 0C7.67 11.5 7 10.83 7 10s.67-1.5 1.5-1.5S10 9.17 10 10s-.67 1.5-1.5 1.5m0-4.5H17v2H8.5V7z"/></svg>
+                            <span>${item.description || 'Travel'}</span>`; // Default text
+                        timeline.appendChild(transportEl);
+                    } else if (item.type === 'activity') { // Ensure it's an activity
+                        const costStr = String(item.cost || 'Free');
+                         const timeStr = item.time || ''; // Handle missing time
+                         const activityName = item.activity || 'Activity'; // Handle missing activity name
+                         const descriptionStr = item.description || 'Visit this location.'; // Handle missing description
+                         
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'timeline-item card';
+                        itemEl.innerHTML = `
+                            ${timeStr ? `<p><strong>${timeStr}</strong></p>` : ''}
+                            <h3>${activityName}</h3>
+                            <p>${descriptionStr}</p>
+                            <p>Cost: <strong>${costStr}</strong></p>
+                        `;
+                        timeline.appendChild(itemEl);
+
+                        // Ensure coordinates are valid numbers before pushing
+                        if (typeof item.latitude === 'number' && typeof item.longitude === 'number') {
+                            allLatLngs.push([item.latitude, item.longitude]);
+                        } else {
+                             console.warn(`Invalid coordinates for activity: ${activityName}`, item.latitude, item.longitude);
+                        }
+                    } else {
+                         console.warn("Unknown itinerary item type:", item);
+                    }
+                });
+                document.getElementById('total-expenditure').textContent = data.totalCost || 'N/A';
+                 // Only setup map if there are valid coordinates
+                 if (allLatLngs.length > 0) {
+                     // Use setTimeout to ensure the map container is visible and has dimensions
+                     setTimeout(() => setupMap(allLatLngs), 100); 
+                } else {
+                     document.getElementById('map').innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No locations with coordinates found for the map.</p>';
+                 }
+
+            } else {
+                 // Handle case where itinerary array is missing or empty
+                 timeline.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Could not generate a detailed itinerary. Please try adjusting your preferences.</p>';
+                  document.getElementById('map').innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">Map not available.</p>';
+                  document.getElementById('total-expenditure').textContent = 'N/A';
+            }
+            resultsContainer.style.display = 'block';
+        };
+
+        let map = null; // Keep map instance reference outside
+        const setupMap = (allLatLngs) => {
+            const mapElement = document.getElementById('map');
+             if (!mapElement) {
+                 console.error("Map container element not found");
+                 return;
+             }
+             
+            // If map already exists, remove it before reinitializing
+            if (map) {
+                map.remove();
+                map = null; 
+            }
+
+            if (!allLatLngs || allLatLngs.length === 0) {
+                mapElement.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">No valid locations to display on map.</p>';
+                return;
+            }
+
+            try {
+                 // Initialize map - Ensure Leaflet is loaded
+                if (typeof L === 'undefined') {
+                     console.error("Leaflet library (L) is not loaded.");
+                     mapElement.innerHTML = '<p style="text-align: center; color: red;">Error loading map library.</p>';
+                     return;
+                 }
+                 
+                map = L.map('map').setView(allLatLngs[0], 12); // Set initial view
+
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                     maxZoom: 19 // Standard max zoom
+                }).addTo(map);
+
+                // Add markers for each location
+                 allLatLngs.forEach(coords => {
+                     // Basic validation for coordinates
+                    if (Array.isArray(coords) && coords.length === 2 && typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+                         L.marker(coords).addTo(map);
+                    } else {
+                         console.warn("Skipping invalid coordinates for marker:", coords);
+                     }
+                 });
+
+                // Add polyline if there's more than one point
+                if (allLatLngs.length > 1) {
+                    L.polyline(allLatLngs, {color: 'rgba(168, 85, 247, 0.8)', weight: 3}).addTo(map);
+                    // Fit map bounds to show all markers and the polyline
+                    map.fitBounds(allLatLngs, {padding: [50, 50]}); // Add padding
+                } else if (allLatLngs.length === 1) {
+                     // If only one point, center the map on it
+                    map.setView(allLatLngs[0], 13); // Zoom in a bit more for a single point
+                }
+                 // Invalidate map size after initialization (useful if container size changed)
+                setTimeout(() => { if (map) map.invalidateSize(); }, 200);
+
+            } catch (error) {
+                 console.error("Error initializing Leaflet map:", error);
+                 mapElement.innerHTML = '<p style="text-align: center; color: red;">Could not load the map.</p>';
+             }
+        };
+
+        
+        const prepareCabBookingPage = () => {
+            const timelineEl = document.getElementById('cab-timeline');
+            const costEl = document.getElementById('cab-cost-breakdown');
+            
+            // Mock data for cab itinerary and cost
+            const cabItinerary = [
+                { time: "9:00 AM", activity: "Pickup & drive to Lalbagh" },
+                { time: "1:00 PM", activity: "Lunch at a local favorite" },
+                { time: "2:30 PM", activity: "Explore Bangalore Palace" },
+                { time: "5:00 PM", activity: "Snacks & Drop-off" }
+            ];
+
+            timelineEl.innerHTML = cabItinerary.map(item => `
+                <div class="timeline-item card">
+                    <p><strong>${item.time}</strong></p>
+                    <h3>${item.activity}</h3>
+                </div>
+            `).join('');
+
+            const baseFare = 2500;
+            const foodAllowance = 800;
+            const total = baseFare + foodAllowance;
+
+            costEl.innerHTML = `
+                <div class="cost-breakdown-row">
+                    <span>Base Fare (8hr/80km)</span>
+                    <span>₹${baseFare.toFixed(2)}</span>
+                </div>
+                <div class="cost-breakdown-row">
+                    <span>Food & Snacks Allowance</span>
+                    <span>₹${foodAllowance.toFixed(2)}</span>
+                </div>
+                <div class="cost-breakdown-row total">
+                    <span>Total Estimate</span>
+                    <span>₹${total.toFixed(2)}</span>
+                </div>
+            `;
+        };
+
+
+
+        // --- Event Listeners ---
+        // ... existing button listeners ...
+        document.getElementById('home-plan-trip-btn')?.addEventListener('click', () => navigateTo('plan-trip-page'));
+        document.getElementById('home-explore-btn')?.addEventListener('click', () => navigateTo('explore-page'));
+        document.getElementById('header-explore-btn')?.addEventListener('click', (e) => { e.preventDefault(); navigateTo('explore-page'); });
+        
+        universalBackBtn.addEventListener('click', goBack);
+         tripForm?.addEventListener('submit', (e) => { // Added null check
+             e.preventDefault();
+            state.tripPreferences = {
+                startLocation: tripForm.querySelector('#start-location').value,
+                destination: tripForm.querySelector('#destination').value,
+                budget: tripForm.querySelector('#budget').value,
+                passengers: tripForm.querySelector('#passengers').value,
+                travelMode: tripForm.querySelector('#travel-mode').value,
+                foodPref: tripForm.querySelector('#food-pref').value
+            };
+            navigateTo('options-page');
+        });
+        
+        optionCards.forEach(card => card.addEventListener('click', () => {
+            const planType = card.dataset.plan;
+             if (!state.tripPreferences) { // Add check for tripPreferences
+                 console.error("Trip preferences not set before choosing plan.");
+                 showToast("Please fill trip details first.");
+                 navigateTo('plan-trip-page'); // Redirect back
+                 return;
+             }
+            state.tripPreferences.plan = planType;
+
+            if (planType === 'premium') {
+                prepareCabBookingPage();
+                navigateTo('book-cab-page');
+            } else {
+                navigateTo('itinerary-page');
+                generateItinerary(state.tripPreferences);
+            }
+        }));
+
+        document.getElementById('pay-for-cab-btn')?.addEventListener('click', () => {
+            showToast('Redirecting to payment gateway...');
+             // In a real app, you would integrate a payment SDK here
+        });
+
+        bottomNavItems.forEach(item => item.addEventListener('click', (e) => {
+            e.preventDefault();
+            if(item.dataset.page) navigateTo(item.dataset.page);
+        }));
+         shareItineraryBtn?.addEventListener('click', handleShare); // Added null check
+         document.getElementById('edit-itinerary-btn')?.addEventListener('click', () => { // Added null check
+            showToast('Editing feature coming soon!');
+        });
+        document.getElementById('start-trip-btn')?.addEventListener('click', () => { // Added null check
+            showToast('Expense tracker coming soon!');
+        });
+
+        // Add click listener for carousel items
+        homeCarousel?.addEventListener('click', (e) => {
+            const item = e.target.closest('.carousel-item');
+            if (item) {
+                const placeName = item.dataset.placeName;
+                if (placeName) {
+                    navigateTo('explore-page');
+                     // Optional: Scroll to/highlight the place in explore page (more complex)
+                     // For now, just navigate. We can filter later if needed.
+                     setTimeout(() => { // Allow page transition
+                         const searchInput = document.getElementById('search-places');
+                         if(searchInput) {
+                              searchInput.value = placeName;
+                              searchInput.dispatchEvent(new Event('input')); // Trigger search/filter
+                         }
+                    }, 100); 
+                }
+            }
+        });
+
+
+        // --- Auth Modal Listeners ---
+        // ... existing modal listeners ...
+         const openAuthModal = () => authModal.classList.add('show');
+        const closeAuthModal = () => authModal.classList.remove('show');
+
+        mainLoginBtn?.addEventListener('click', (e) => { // Added null check
+            e.preventDefault();
+            if (state.isLoggedIn) {
+                navigateTo('profile-page');
+            } else {
+                openAuthModal();
+            }
+        });
+        closeModalBtn?.addEventListener('click', closeAuthModal); // Added null check
+
+        showSignupBtn?.addEventListener('click', () => { // Added null check
+            loginView.style.display = 'none';
+            signupView.style.display = 'block';
+             authError.style.display = 'none'; // Hide error on switch
+        });
+
+        showLoginBtn?.addEventListener('click', () => { // Added null check
+            signupView.style.display = 'none';
+            loginView.style.display = 'block';
+             authError.style.display = 'none'; // Hide error on switch
+        });
+
+
+        // --- Firebase Auth Listeners ---
+        // ... existing firebase auth listeners ...
+         signupForm?.addEventListener('submit', (e) => { // Added null check
+            e.preventDefault();
+             authError.style.display = 'none'; // Clear previous errors
+            const email = signupForm['signup-email'].value;
+            const password = signupForm['signup-password'].value;
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log('Signed up:', userCredential.user);
+                    closeAuthModal();
+                    showToast("Sign up successful!");
+                })
+                .catch(error => {
+                    console.error("Signup Error:", error);
+                    authError.textContent = error.message;
+                    authError.style.display = 'block';
+                });
+        });
+
+        loginForm?.addEventListener('submit', (e) => { // Added null check
+            e.preventDefault();
+             authError.style.display = 'none'; // Clear previous errors
+            const email = loginForm['login-email'].value;
+            const password = loginForm['login-password'].value;
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    console.log('Logged in:', userCredential.user);
+                    closeAuthModal();
+                     showToast("Login successful!");
+                })
+                .catch(error => {
+                     console.error("Login Error:", error);
+                    authError.textContent = error.message;
+                    authError.style.display = 'block';
+                });
+        });
+        
+        googleSigninBtn?.addEventListener('click', () => { // Added null check
+             authError.style.display = 'none'; // Clear previous errors
+            auth.signInWithPopup(googleProvider)
+                .then((result) => {
+                    console.log('Google Sign-In successful', result.user);
+                    closeAuthModal();
+                     showToast("Signed in with Google!");
+                }).catch((error) => {
+                     console.error("Google Sign-In Error:", error);
+                    // Handle specific errors like popup blocked
+                    if (error.code === 'auth/popup-blocked') {
+                        authError.textContent = 'Popup blocked by browser. Please allow popups for this site.';
+                    } else if (error.code === 'auth/cancelled-popup-request') {
+                         authError.textContent = 'Sign-in cancelled.'; // Or just don't show an error
+                    } else {
+                         authError.textContent = error.message;
+                    }
+                    authError.style.display = 'block';
+                });
+        });
+
+        logoutBtn?.addEventListener('click', () => { // Added null check
+            auth.signOut().then(() => {
+                showToast("You've been logged out.");
+                state.previousPages = []; // Clear history on logout
+                navigateTo('home-page');
+            }).catch(error => {
+                 console.error("Logout Error:", error);
+                 showToast("Error logging out.");
+            });
+        });
+
+
+
+        // --- Auth State Change Observer ---
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // User is signed in.
+                state.isLoggedIn = true;
+                state.user = user;
+                loginText.textContent = user.displayName || user.email?.split('@')[0] || 'Account'; // Fallback
+                profileFavicon.style.display = 'inline-block';
+                 // Use a default placeholder if no photoURL
+                profileFavicon.src = user.photoURL || `https://placehold.co/32x32/a855f7/FFFFFF?text=${(user.email || 'U')[0].toUpperCase()}`;
+
+
+                document.getElementById('profile-email').textContent = user.email || 'No email provided';
+                document.getElementById('profile-name').textContent = user.displayName || user.email?.split('@')[0] || 'User';
+                 const profileAvatar = document.getElementById('profile-avatar');
+                 if (profileAvatar) {
+                     profileAvatar.src = user.photoURL || `https://placehold.co/100x100/a855f7/FFFFFF?text=${(user.email || 'U')[0].toUpperCase()}`;
+                 }
+
+
+                // Fetch favorites from Firestore
+                 const userDocRef = db.collection('users').doc(user.uid);
+                 userDocRef.get().then(doc => {
+                    if (doc.exists && doc.data().favorites) {
+                        state.favorites = Array.isArray(doc.data().favorites) ? doc.data().favorites : []; // Ensure it's an array
+                    } else {
+                        // If doc doesn't exist or no favorites field, initialize favorites
+                        state.favorites = [];
+                         // Optionally create the document if it doesn't exist
+                         if (!doc.exists) {
+                             userDocRef.set({ favorites: [] }).catch(err => console.error("Error creating user doc:", err));
+                         }
+                    }
+                     // Re-render explore page only if it's the current one, to update heart icons
+                    if (state.currentPage === 'explore-page') {
+                        document.getElementById('search-places')?.dispatchEvent(new Event('input')); 
+                    }
+                }).catch(error => {
+                     console.error("Error fetching user favorites:", error);
+                     // Fallback to local storage or empty array if Firestore fails
+                      state.favorites = JSON.parse(localStorage.getItem('finloFavorites')) || [];
+                 });
+
+            } else {
+                // User is signed out.
+                state.isLoggedIn = false;
+                state.user = null;
+                // Load favorites from localStorage for guests
+                state.favorites = JSON.parse(localStorage.getItem('finloFavorites')) || [];
+                loginText.textContent = 'Login';
+                profileFavicon.style.display = 'none';
+                profileFavicon.src = 'https://placehold.co/32x32/E4DFAF/000000?text=U'; // Reset placeholder
+
+                 // Reset profile page display if needed
+                 const profileAvatar = document.getElementById('profile-avatar');
+                 if (profileAvatar) profileAvatar.src = 'https://placehold.co/100x100/a855f7/FFFFFF?text=U';
+                 const profileName = document.getElementById('profile-name');
+                 if (profileName) profileName.textContent = 'User Name';
+                  const profileEmail = document.getElementById('profile-email');
+                 if (profileEmail) profileEmail.textContent = 'user@example.com';
+                 
+                 // Re-render explore page if current, to clear logged-in heart icons
+                 if (state.currentPage === 'explore-page') {
+                     document.getElementById('search-places')?.dispatchEvent(new Event('input')); 
+                 }
+                  // If on profile page when logging out, redirect to home
+                 if (state.currentPage === 'profile-page') {
+                     navigateTo('home-page');
+                 }
+            }
+        });
+
+
+        // --- Initial Load ---
+        const splashScreen = document.getElementById('splash-screen');
+         // Use requestAnimationFrame for smoother transition start
+        requestAnimationFrame(() => {
+             setTimeout(() => {
+                 if (splashScreen) {
+                     splashScreen.classList.add('hidden');
+                     // Remove splash screen from DOM after transition for performance
+                     splashScreen.addEventListener('transitionend', () => splashScreen.remove(), { once: true });
+                 }
+             }, 100); // Shorter delay might feel better
+        });
+        
+        setupExploreFilters();
+        // Initial render of places is handled by the auth state change listener now
+        // renderPlaces(bangalorePlaces, document.getElementById('places-grid')); 
+        updateUI(); // Initial UI setup based on default state
+        
+    });
+    </script>
+</body>
+</html>
+
