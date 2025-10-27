@@ -1275,7 +1275,7 @@ function updateHeaderForLoggedOutUser() {
     }
 
     headerCenter.innerHTML = `
-        <a class="nav-link" onclick="window.showSection('home'); return false;">About Us</a>
+        <a class="nav-link" onclick="window.showSection('home'); return false;">Finlo</a>
         <a class="nav-link" onclick="window.showSection('explore'); return false;">Explore</a>
     `;
     headerRight.innerHTML = `
